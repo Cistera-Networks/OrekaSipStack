@@ -216,7 +216,7 @@ cd "${WORKSPACE_ROOT}/orkbasecxx"
 
 autoreconf -i
 
-./configure CXX=g++
+./configure CXX=g++ --prefix=/usr
 
 make -j"$(nproc)"
 
@@ -241,7 +241,7 @@ export PKG_CONFIG_PATH="${ORKSIP_INSTALL_ROOT}/usr/lib/pkgconfig:${PKG_CONFIG_PA
 
 autoreconf -i
 
-./configure CXX=g++ \
+./configure CXX=g++ --prefix=/usr \
     LDFLAGS="-L${ORKSIP_INSTALL_ROOT}/usr/lib -Wl,-rpath,${ORKSIP_INSTALL_ROOT}/usr/lib" \
     CPPFLAGS="-I${ORKSIP_INSTALL_ROOT}/usr/include"
 
