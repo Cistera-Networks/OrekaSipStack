@@ -10,7 +10,9 @@
  * Please refer to http://www.gnu.org/copyleft/gpl.html
  *
  */
+#ifdef _MSC_VER
 #pragma warning( disable: 4786 )
+#endif
 
 #define _WINSOCKAPI_		// prevents the inclusion of winsock.h
 

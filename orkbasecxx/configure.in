@@ -30,28 +30,43 @@ AS_IF([test "x$enable_asan" = "xyes"], [
 # look for XERCES_3
 AC_CHECK_HEADERS([/usr/include/xercesc/dom/DOMLSSerializer.hpp],[CXXFLAGS+=" -DXERCES_3 "])
 
-if [grep "release 7" /etc/redhat-release]; then
-    boost_lib=/usr/lib64/static_libboost_system.a
+# ---- OS / distribution detection ----
+# EL6 / EL7 / EL10 each need different boost and compiler flags.
+# We probe /etc/redhat-release (RHEL/CentOS/Alma/Rocky) and /etc/os-release (modern).
+
+if test -f /etc/redhat-release; then
+	if grep -q "release 6" /etc/redhat-release; then
+		CXXFLAGS+=" -DCENTOS_6 -D__STDC_CONSTANT_MACROS"
+		boost_lib=
+		# CentOS 6 does not have working TLS support
+	else
+		CXXFLAGS+=" -DSUPPORT_TLS_SERVER -DSUPPORT_TLS_CLIENT"
+	fi
+
+	if grep -q "release 7" /etc/redhat-release; then
+		boost_lib=/usr/lib64/static_libboost_system.a
+	fi
+
+	# EL10+ (AlmaLinux 10, RHEL 10, etc.) — modern toolchain; no special handling needed.
+	# The defaults (shared boost, TLS enabled, no CENTOS_6) are correct.
 fi
 
-# don't support TLS under Centos 6
-if [! grep "release 6" /etc/redhat-release]; then
-    CXXFLAGS+=" -DSUPPORT_TLS_SERVER -DSUPPORT_TLS_CLIENT"
-fi
-
-if [cat /etc/redhat-release | grep "release 6"]; then
-    CXXFLAGS+=" -DCENTOS_6 -D__STDC_CONSTANT_MACROS"
-    boost_lib=
+# Also handle systems using /etc/os-release (Ubuntu, Debian, etc.) — always enable TLS.
+if test -f /etc/os-release && test ! -f /etc/redhat-release; then
+	CXXFLAGS+=" -DSUPPORT_TLS_SERVER -DSUPPORT_TLS_CLIENT"
 fi
 
 AC_SUBST(boost_lib,$boost_lib)
 
-# Check if gcc supports cpp11 
-if [echo "int main(){}" | $CXX -std=c++11 -xc++ -S -  &>/dev/null]; then 
+# Check if gcc supports cpp11
+if echo "int main(){}" | $CXX -std=c++11 -xc++ -S - >/dev/null 2>&1; then
 	CXXFLAGS+=" -std=c++11 -DSUPPORTS_CPP11 -fPIC"
-else	
+else
 	AC_MSG_FAILURE("Compiler must support C++ 11")
 fi
+
+# GCC 14+ / strict compilers: avoid spurious aliasing warnings on packet-header casts.
+CXXFLAGS+=" -fno-strict-aliasing"
 
 AM_PROG_LIBTOOL
 

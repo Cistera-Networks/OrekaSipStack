@@ -27,21 +27,38 @@ AS_IF([test "x$enable_asan" = "xyes"], [
 ])
 
 # Check if gcc supports cpp11
-if [echo "int main(){}" | $CXX -std=c++11 -xc++ -S -  &>/dev/null] ; then
+if echo "int main(){}" | $CXX -std=c++11 -xc++ -S - >/dev/null 2>&1; then
 	CXXFLAGS+=" -std=c++11 -DSUPPORTS_CPP11 -fPIC"
 	LDFLAGS+=" -ldl"
 else
 	AC_MSG_FAILURE("Compiler must support C++ 11")
 fi
 
-# don't support TLS under Centos 6
-if [! grep "release 6" /etc/redhat-release]; then
-    CXXFLAGS+=" -DSUPPORT_TLS_SERVER -DSUPPORT_TLS_CLIENT"
+# ---- OS / distribution detection ----
+# EL6 / EL7 need orkspeex; EL10+ uses the default system speex.
+# TLS is available everywhere except CentOS 6.
+
+if test -f /etc/redhat-release; then
+	if grep -q "release 6" /etc/redhat-release; then
+		# CentOS 6: no TLS
+		:
+	else
+		CXXFLAGS+=" -DSUPPORT_TLS_SERVER -DSUPPORT_TLS_CLIENT"
+	fi
+
+	if egrep -qi "release [67]" /etc/redhat-release; then
+		speex_lib=orkspeex
+	fi
+	# EL10+ (AlmaLinux 10, RHEL 10, etc.) — default speex is correct.
 fi
 
-if [ egrep -i "release [67]" /etc/redhat-release ]; then
-	speex_lib=orkspeex
+# Systems without /etc/redhat-release (Ubuntu, Debian, etc.) always get TLS.
+if test -f /etc/os-release && test ! -f /etc/redhat-release; then
+	CXXFLAGS+=" -DSUPPORT_TLS_SERVER -DSUPPORT_TLS_CLIENT"
 fi
+
+# GCC 14+ / strict compilers: avoid spurious aliasing warnings on packet-header casts.
+CXXFLAGS+=" -fno-strict-aliasing"
 
 AM_PROG_LIBTOOL
 AC_SEARCH_LIBS([dwarf_begin],[dw],[][

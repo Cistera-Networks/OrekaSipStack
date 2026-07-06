@@ -17,7 +17,9 @@
 
 #define _WINSOCKAPI_// prevents the inclusion of winsock.h
 
+#ifdef _MSC_VER
 #pragma warning( disable: 4200 ) // disables warning C4200: nonstandard extension used : zero-sized array in struct/union
+#endif
 
 #include "StdString.h"
 #include "DtmfHandling.h"

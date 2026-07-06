@@ -2,7 +2,9 @@
  * Oreka -- A media capture and retrieval platform
  *
  */
+#ifdef _MSC_VER
 #pragma warning( disable: 4786 ) // disables truncated symbols in browse-info warning
+#endif
 
 #define _WINSOCKAPI_		// prevents the inclusion of winsock.h
 

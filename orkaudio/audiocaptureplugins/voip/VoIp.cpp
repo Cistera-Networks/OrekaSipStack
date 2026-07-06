@@ -10,12 +10,15 @@
  * Please refer to http://www.gnu.org/copyleft/gpl.html
  *
  */
+#ifdef _MSC_VER
 #pragma warning( disable: 4786 ) // disables truncated symbols in browse-info warning
+#endif
 #define _WINSOCKAPI_		// prevents the inclusion of winsock.h
 
 #ifndef WIN32
 #include "sys/socket.h"
 #include <unistd.h>
+#include <errno.h>
 #endif
 
 #ifdef WIN32
@@ -1342,31 +1345,32 @@ bool VoIp::SetPcapSocketBufferSize(pcap_t* pcapHandle)
 
 bool VoIp::SetPcapSocketBufferSize(pcap_t* pcapHandle)
 {
-	bool ret = true;
 	CStdString logMsg;
-	size_t bufSize = 0;
 
 	int status = 0;
-	bufSize = DLLCONFIG.m_pcapSocketBufferSize;
+	size_t bufSize = DLLCONFIG.m_pcapSocketBufferSize;
 	if(bufSize < 1)
 	{
-		return ret;
+		return true;
 	}
 
-	status = pcap_set_buffer_size(pcapHandle, bufSize);	//66584576 ~64Mb
+	// On modern libpcap (>= 1.10) this sets the TPACKET_V3 ring buffer size.
+	// Must be called *before* pcap_activate().  The kernel may still clamp it
+	// to the value in /proc/sys/net/core/rmem_max.
+	status = pcap_set_buffer_size(pcapHandle, bufSize);
 	if(status == 0)
 	{
-		logMsg.Format("Setting pcap socket buffer size:%u bytes successful", bufSize);
+		logMsg.Format("pcap_set_buffer_size: %zu bytes successful", bufSize);
 		LOG4CXX_INFO(s_packetLog, logMsg);
-		return ret;
-
 	}
 	else
 	{
-		logMsg.Format("Setting pcap buffer size on pcaphandle:%x failed error:%d", pcapHandle, status);
-		LOG4CXX_ERROR(s_packetLog, logMsg);
-		return false;
+		logMsg.Format("pcap_set_buffer_size: %zu bytes failed (error %d); "
+			      "proceeding with default buffer size", bufSize, status);
+		LOG4CXX_WARN(s_packetLog, logMsg);
+		// Non-fatal: proceed with the pcap default.
 	}
+	return true;
 }
 
 bool VoIp::ActivatePcapHandle(pcap_t* pcapHandle)
@@ -1383,7 +1387,11 @@ bool VoIp::ActivatePcapHandle(pcap_t* pcapHandle)
 	logMsg.Format("Activating pcaphandle:%x successfully", pcapHandle);
 	LOG4CXX_INFO(s_packetLog, logMsg);
 	#ifndef WIN32
-	//Setting SO_RCVBUF size - this proved to help under CentOS6. This is probably not necessary under CentOS7 but does no harm.
+	// Raise SO_RCVBUF on the pcap socket.  This helps avoid drops under
+	// high load.  The kernel clamps the request to /proc/sys/net/core/rmem_max;
+	// we log the actual value applied so admins can verify the sysctl is high
+	// enough (>= 16 MiB recommended for kernel 6.x with TPACKET_V3).
+	{
 		int pcapFileno = pcap_fileno(pcapHandle);
 		if(pcapFileno < 0)
 		{
@@ -1391,20 +1399,30 @@ bool VoIp::ActivatePcapHandle(pcap_t* pcapHandle)
 			LOG4CXX_ERROR(s_packetLog, logMsg);
 			return false;
 		}
-		size_t bufSize = 0;
-		bufSize = 8388608;
-		if(setsockopt(pcapFileno, SOL_SOCKET, SO_RCVBUF, &bufSize, sizeof(bufSize)) == 0)
+		size_t reqSize = 8388608;   // 8 MiB request
+		socklen_t optLen = sizeof(reqSize);
+		if(setsockopt(pcapFileno, SOL_SOCKET, SO_RCVBUF, &reqSize, optLen) == 0)
 		{
-			logMsg.Format("Setting setsockopt with bufsize:%d successfully", bufSize);
-			LOG4CXX_INFO(s_packetLog, logMsg);
-                	return true;
+			// Read back the *actual* value the kernel granted.
+			size_t actualSize = 0;
+			socklen_t actualLen = sizeof(actualSize);
+			if(getsockopt(pcapFileno, SOL_SOCKET, SO_RCVBUF, &actualSize, &actualLen) == 0)
+			{
+				// Linux doubles the value for bookkeeping overhead; the
+				// usable buffer is ≈ half.
+				logMsg.Format("pcap SO_RCVBUF: requested=%zu  granted=%zu  usable~%zu",
+					      reqSize, actualSize, actualSize / 2);
+				LOG4CXX_INFO(s_packetLog, logMsg);
+			}
 		}
 		else
 		{
-			logMsg.Format("Setting setsockopt with bufsize:%d failed", bufSize);
-			LOG4CXX_ERROR(s_packetLog, logMsg);
-                	return false;
+			logMsg.Format("setsockopt SO_RCVBUF=%zu failed (errno=%d); "
+				      "check net.core.rmem_max", reqSize, errno);
+			LOG4CXX_WARN(s_packetLog, logMsg);
+			// Non-fatal: proceed with the kernel default.
 		}
+	}
 	#endif
 	return true;
 }

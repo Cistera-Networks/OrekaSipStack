@@ -10,7 +10,9 @@
  * Please refer to http://www.gnu.org/copyleft/gpl.html
  *
  */
+#ifdef _MSC_VER
 #pragma warning( disable: 4786 ) // disables truncated symbols in browse-info warning
+#endif
 #ifdef WIN32
 #include <WinSock2.h>
 #include <WS2tcpip.h>
