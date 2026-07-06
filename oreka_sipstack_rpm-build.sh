@@ -216,7 +216,7 @@ cd "${WORKSPACE_ROOT}/orkbasecxx"
 
 autoreconf -i
 
-./configure CXX=g++ --prefix=/usr
+./configure CXX=g++ --prefix=/usr --libdir=/usr/lib
 
 make -j"$(nproc)"
 
@@ -237,12 +237,12 @@ log "Step 4/6  Building orkaudio..."
 
 cd "${WORKSPACE_ROOT}/orkaudio"
 
-export PKG_CONFIG_PATH="${ORKSIP_INSTALL_ROOT}/usr/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+export PKG_CONFIG_PATH="${ORKSIP_INSTALL_ROOT}/usr/lib/pkgconfig:${ORKSIP_INSTALL_ROOT}/usr/lib64/pkgconfig:${PKG_CONFIG_PATH:-}"
 
 autoreconf -i
 
-./configure CXX=g++ --prefix=/usr \
-    LDFLAGS="-L${ORKSIP_INSTALL_ROOT}/usr/lib -Wl,-rpath,${ORKSIP_INSTALL_ROOT}/usr/lib" \
+./configure CXX=g++ --prefix=/usr --libdir=/usr/lib \
+    LDFLAGS="-L${ORKSIP_INSTALL_ROOT}/usr/lib -L${ORKSIP_INSTALL_ROOT}/usr/lib64 -Wl,-rpath,${ORKSIP_INSTALL_ROOT}/usr/lib" \
     CPPFLAGS="-I${ORKSIP_INSTALL_ROOT}/usr/include"
 
 make -j"$(nproc)"
