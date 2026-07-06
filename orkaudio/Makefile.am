@@ -8,7 +8,7 @@ orkaudio_LDADD =
 orkaudio_LDFLAGS = -lxerces-c -llog4cxx -lorkbase -lsndfile -l@speex_lib@ -lapr-1 -lssl -lcrypto -lpthread -ldl 
 orkaudio_SOURCES = 	OrkAudio.cpp
 AM_CPPFLAGS = -D_REENTRANT
-INCLUDES = -I@top_srcdir@ -I../orkbasecxx -I/opt/opus/include/opus -I../orkbasecxx/filters/gsm -I../orkbasecxx/filters/gsm/gsm610 -I../orkbasecxx/filters/ilbc -I../orkbasecxx/filters/ilbc/ilbc -I../orkbasecxx/filters/audiogain -I../orkbasecxx/filters/g722codec -I../orkbasecxx/filters/speex -I../orkbasecxx/filters/g726codecs -I../orkbasecxx/filters/g726codecs/g72x -I../orkbasecxx/filters/opuscodec -I/usr/include/apr-1 -I/usr/include/apr-1.0
+INCLUDES = -I@top_srcdir@ -I../orkbasecxx -I/usr/include/opus -I../orkbasecxx/filters/gsm -I../orkbasecxx/filters/gsm/gsm610 -I../orkbasecxx/filters/ilbc -I../orkbasecxx/filters/ilbc/ilbc -I../orkbasecxx/filters/audiogain -I../orkbasecxx/filters/g722codec -I../orkbasecxx/filters/speex -I../orkbasecxx/filters/g726codecs -I../orkbasecxx/filters/g726codecs/g72x -I../orkbasecxx/filters/opuscodec -I/usr/include/apr-1 -I/usr/include/apr-1.0
 SUBDIRS = audiocaptureplugins filters
 #orkaudio_LDADD = $(top_builddir)/messages/libmessages.la 
 

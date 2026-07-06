@@ -20,7 +20,7 @@ liborkbase_la_SOURCES = Filter.cpp g711.c \
 			SizedBuffer.cpp DirectionSelector.cpp \
 			SslUtils.cpp
 #INCLUDES = -I/projects/ext/xmlrpc++/xmlrpc++0.7/src
-INCLUDES = -I/opt/opus/include/opus -I/usr/include/apr-1 -I/usr/include/apr-1.0
+INCLUDES = -I/usr/include/opus -I/usr/include/apr-1 -I/usr/include/apr-1.0
 SUBDIRS = messages serializers audiofile filters
 liborkbase_la_LIBADD = $(top_builddir)/serializers/libserializers.la \
 	$(top_builddir)/messages/libmessages.la \
