@@ -387,10 +387,18 @@ install -d -m 0755 %{buildroot}/var/log/orkaudio
 install -d -m 0755 %{buildroot}/opt/orkaudio/audio
 
 # ---- G.729 codec library (built from source) ----
-if [ -f /usr/lib64/libbcg729.so ]; then
-    install -D -m 0755 /usr/lib64/libbcg729.so   %{buildroot}/usr/lib64/libbcg729.so
-elif [ -f /usr/lib/libbcg729.so ]; then
-    install -D -m 0755 /usr/lib/libbcg729.so      %{buildroot}/usr/lib/libbcg729.so
+if [ -f /usr/lib64/libbcg729.so.0 ]; then
+    for f in /usr/lib64/libbcg729.so*; do
+        [ -f "$f" ] || continue
+        bname="$(basename "$f")"
+        install -D -m 0755 "$f" "%{buildroot}/usr/lib64/${bname}"
+    done
+elif [ -f /usr/lib/libbcg729.so.0 ]; then
+    for f in /usr/lib/libbcg729.so*; do
+        [ -f "$f" ] || continue
+        bname="$(basename "$f")"
+        install -D -m 0755 "$f" "%{buildroot}/usr/lib/${bname}"
+    done
 fi
 
 %files
@@ -399,6 +407,7 @@ fi
 /usr/lib/libvoip.so*
 /usr/lib/libgenerator.so*
 /usr/lib/orkaudio/plugins/
+/usr/lib64/libbcg729.so*
 %dir %{_sysconfdir}/orkaudio
 %config(noreplace) %{_sysconfdir}/orkaudio/config.xml
 %config(noreplace) %{_sysconfdir}/orkaudio/logging.properties
