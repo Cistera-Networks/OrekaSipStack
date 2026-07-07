@@ -9,7 +9,7 @@
 #        speex-devel log4cxx-devel libcap-devel opus-devel \
 #        xerces-c-devel openssl-devel cmake elfutils-devel xz-devel \
 #        libunwind-devel git rpm-build rpmdevtools file
-#    # SILK, bcg729, Opus -- see build prerequisites doc
+#    # SILK, bcg729, Opus, backward-cpp -- see build prerequisites doc
 #
 #  1. Clones OrekaSipStack from GitHub (authenticated via GITHUB_TOKEN)
 #  2. Verifies build dependencies and codec libs are present
@@ -206,23 +206,6 @@ if [ -n "$MISSING_CODECS" ]; then
 fi
 
 log "  All codec libraries present."
-
-# =============================================================================
-# Step 2b -- Install backward-cpp (header-only stack trace library)
-# =============================================================================
-log "Step 2b/6  Installing backward-cpp..."
-
-BACKWARD_HEADER="/usr/local/include/backward.hpp"
-
-if [ ! -f "${BACKWARD_HEADER}" ]; then
-    rm -rf /opt/backward-cpp 2>/dev/null || true
-    mkdir -p /opt/backward-cpp && chmod 777 /opt/backward-cpp
-    git clone --depth 1 https://github.com/bombela/backward-cpp.git /opt/backward-cpp
-    ln -s /opt/backward-cpp/backward.hpp "${BACKWARD_HEADER}"
-    log "  backward-cpp installed to ${BACKWARD_HEADER}"
-else
-    log "  backward-cpp already present."
-fi
 
 # =============================================================================
 # Step 3 -- Build orkbasecxx
