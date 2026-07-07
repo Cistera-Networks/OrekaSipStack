@@ -347,30 +347,21 @@ rm -rf %{buildroot}
 install -D -m 0755 %{_sourcedir}/usr/sbin/orkaudio  %{buildroot}/usr/sbin/orkaudio
 
 # ---- Core library ----
-for f in %{_sourcedir}/usr/lib/liborkbase.*; do
+for f in %{_sourcedir}/usr/lib/liborkbase.so*; do
     [ -f "$f" ] || continue
     bname="$(basename "$f")"
     install -D -m 0755 "$f" "%{buildroot}/usr/lib/${bname}"
 done
 
-# ---- Sub-libraries (serializers, messages, audiofile, filters) ----
-for libdir in serializers messages audiofile filters; do
-    for f in %{_sourcedir}/usr/lib/orkbase*/${libdir}/*.so*; do
-        [ -f "$f" ] || continue
-        bname="$(basename "$f")"
-        install -D -m 0755 "$f" "%{buildroot}/usr/lib/${bname}"
-    done
-done
-
 # ---- VoIP capture plugin ----
-for f in %{_sourcedir}/usr/lib/libvoip.so* %{_sourcedir}/usr/lib/libvoip.la; do
+for f in %{_sourcedir}/usr/lib/libvoip.so*; do
     [ -f "$f" ] || continue
     bname="$(basename "$f")"
     install -D -m 0755 "$f" "%{buildroot}/usr/lib/${bname}"
 done
 
 # ---- Generator plugin (testing) ----
-for f in %{_sourcedir}/usr/lib/libgenerator.so* %{_sourcedir}/usr/lib/libgenerator.la; do
+for f in %{_sourcedir}/usr/lib/libgenerator.so*; do
     [ -f "$f" ] || continue
     bname="$(basename "$f")"
     install -D -m 0755 "$f" "%{buildroot}/usr/lib/${bname}"
@@ -405,23 +396,8 @@ fi
 %files
 /usr/sbin/orkaudio
 /usr/lib/liborkbase.so*
-/usr/lib/liborkbase.la
-/usr/lib/libserializers.*
-/usr/lib/libmessages.*
-/usr/lib/libaudiofile.*
-/usr/lib/libgsm.*
-/usr/lib/libgsm610.*
-/usr/lib/libilbc.*
-/usr/lib/libaudiogain.*
-/usr/lib/libg722codec.*
-/usr/lib/libspeexfilter.*
-/usr/lib/libg726codecs.*
-/usr/lib/libg72x.*
-/usr/lib/libopuscodec.*
 /usr/lib/libvoip.so*
-/usr/lib/libvoip.la
 /usr/lib/libgenerator.so*
-/usr/lib/libgenerator.la
 /usr/lib/orkaudio/plugins/
 %dir %{_sysconfdir}/orkaudio
 %config(noreplace) %{_sysconfdir}/orkaudio/config.xml
