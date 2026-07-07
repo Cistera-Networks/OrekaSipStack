@@ -11,6 +11,7 @@ Based on [OrecX Oreka](http://www.orecx.com/open-source/) ([GitHub](https://gith
 - [Prerequisites](#prerequisites)
 - [Building](#building)
   - [C++ Components (orkbasecxx & orkaudio)](#c-components-orkbasecxx--orkaudio)
+  - [RPM Build & Installation](#rpm-build--installation)
   - [Java Components (orktrack & orkweb)](#java-components-orktrack--orkweb)
 - [Docker](#docker)
   - [Building the Docker Image](#building-the-docker-image)
@@ -78,75 +79,65 @@ Based on [OrecX Oreka](http://www.orecx.com/open-source/) ([GitHub](https://gith
 
 ### orkbasecxx
 The **C++ base library** shared by all C++ capture services. It provides:
-
-| Module | Purpose |
-|--------|---------|
-| `AudioCapture` | Core audio chunk handling, capture events, encoding enums |
-| `AudioTape` | Recording session lifecycle (start/stop/hold/resume) |
-| `CapturePort` | Associates a network endpoint with a recording session |
-| `BatchProcessing` | Thread pool for audio compression and post-processing |
-| `Reporting` | Sends call metadata to orktrack via TCP/TLS |
-| `Config` / `ConfigManager` | XML configuration parsing |
-| `serializers/` | Serialization formats: DOM, SingleLine, URL, XML-RPC |
-| `audiofile/` | Audio file writers: PCM, WAV (libsndfile), Opus/Ogg, MediaChunk |
-| `filters/` | Codec transcoding filters (see [Supported Codecs](#supported-protocols--codecs)) |
-| `MultiThreadedServer` | TCP/TLS server infrastructure |
-| `EventStreaming` | WebSocket-based event streaming |
-| `Daemon` | Cross-platform daemonization (Linux daemon / Windows service) |
+- **AudioCapture**: Core audio capture abstractions and plugin framework.
+- **AudioTape**: Recording session management — tracks call state, metadata, and audio chunks.
+- **Filters**: Codec conversion filters (GSM, iLBC, G.722, G.726, Opus, Speex).
+- **Serializers**: Serialization formats (DOM, SingleLine, URL, XML-RPC).
+- **MultiThreadedServer**: TCP/TLS server framework for accepting connections.
+- **Config**: XML configuration parsing with XSD schema validation.
+- **Reporting**: Metadata reporting to orktrack via TCP or TLS.
+- **BatchProcessing**: Thread pool for post-processing audio (compression, format conversion).
+- **EventStreaming**: WebSocket push of real-time events.
 
 ### orkaudio
-The **audio capture and storage daemon**. It uses pluggable capture modules:
+The **audio capture daemon**. Links against orkbasecxx and dynamically loads capture plugins at runtime. Handles:
+- Packet capture via libpcap.
+- Signalling parsing (SIP, Skinny, IAX2, H.323).
+- RTP media stream detection, extraction, and chunking.
+- Multi-threaded processing pipeline.
 
-| Plugin | Library | Description |
-|--------|---------|-------------|
-| **VoIP** | `libvoip.so` / `VoIP.dll` | Primary plugin. Captures VoIP signalling and RTP media via libpcap. Supports SIP, Cisco Skinny (SCCP), IAX2, and raw RTP/RTCP. Also supports SIPREC for compliant call recording. |
-| **SoundDevice** | (sounddevice/) | Records from local sound card / audio input device. |
-| **Generator** | `libgenerator.so` | Generates fake audio streams for testing. Replays an existing WAV file as simulated calls. |
+### orktrack (Java)
+A **metadata indexing and search service**. Receives call metadata from orkaudio over TCP/TLS, stores it in MySQL, and exposes a search API.
 
-### orktrack *(Java, in pom.xml modules)*
-Tracks and publishes all activity from one or more orkaudio services to a database (MySQL). Receives call metadata via TCP/TLS from orkaudio's Reporting module.
-
-### orkweb *(Java/Tapestry)*
-A J2EE Tapestry-based web front-end for searching, browsing, and replaying recorded calls. Communicates with the orktrack database.
+### orkweb (Java)
+A **web-based user interface** built with Apache Tapestry. Provides call search, playback, and download features.
 
 ---
 
 ## Supported Protocols & Codecs
 
 ### VoIP Signalling Protocols
-| Protocol | Support |
-|----------|---------|
-| **SIP** (including SIPREC) | Full support — INVITE, BYE, re-INVITE (hold/resume), compact headers, SIP over TCP, SDP offer/answer, custom header extraction |
-| **Cisco Skinny (SCCP)** | Full support — CUCM 7+, metadata extraction |
-| **IAX2** | Supported |
-| **H.323** (Avaya extensions) | Supported via `libh323voip.so` plugin |
-| **Nortel Unistim** | Supported |
-| **Mitel** | Supported (signalling + ARP extension detection + SMDR) |
-| **Sangoma Wanpipe RTP Tap** | Supported (TDM board integration) |
-| **Raw RTP / RTCP** | Supported with SDES metadata extraction |
 
-### Audio Codecs (decode → transcode → store)
-| Codec | RTP Payload | Notes |
-|-------|-------------|-------|
-| G.711 μ-law (PCMU) | 0 | |
-| G.711 A-law (PCMA) | 8 | |
-| GSM | 3 | |
-| iLBC | 97 | |
-| G.722 | 9 | Wideband |
-| G.721 | — | |
-| G.726 | — | |
-| G.729 | 18 | Via bcg729 library |
-| SILK | — | Via SILK SDK |
-| Opus | — | Via libopus |
-| Speex | — | Via libspeex |
+| Protocol | Description |
+|----------|-------------|
+| **SIP** (including SIPREC) | Session Initiation Protocol — the primary signalling protocol. SIPREC support for call recording servers. |
+| **Cisco Skinny (SCCP)** | Cisco Skinny Client Control Protocol — used by older Cisco IP phones. |
+| **IAX2** | Inter-Asterisk eXchange protocol v2. |
+| **H.323** | Legacy ITU-T protocol suite. |
+| **RTP/RTCP** | Raw RTP media streams with RTCP metadata. |
+
+### Audio Codecs
+
+| Codec | Description | Library |
+|-------|-------------|---------|
+| G.711 (μ-law / A-law) | Standard narrowband codec | Built-in |
+| GSM | GSM 06.10 full-rate | Built-in (libgsm) |
+| iLBC | Internet Low Bitrate Codec | Built-in (libilbc) |
+| G.722 | Wideband (7 kHz) codec | Built-in (libg722) |
+| G.726 (16/24/32/40 kbps) | ADPCM codec variants | Built-in (libg726) |
+| **G.729** | 8 kbps narrowband | libbcg729 (built from source) |
+| **SILK** | Skype SILK codec | SILK SDK (built from source) |
+| **Opus** | Modern wideband codec | libopus |
+| **Speex** | Speech codec | libspeex |
 
 ### Storage Formats
+
 | Format | Extension | Description |
 |--------|-----------|-------------|
-| `native` | `.mcf` | Raw media chunk file (uncompressed) |
-| `gsm` | `.gsm` | GSM 6.10 compressed |
-| `ulaw` | `.ulaw` | G.711 μ-law |
-| `alaw` | `.alaw` | G.711 A-law |
+| `native` | `.mcf` | Raw Oreka container format |
+| `gsm` | `.gsm` | GSM 06.10 compressed |
+| `ulaw` | `.ulaw` | G.711 μ-law raw audio |
+| `alaw` | `.alaw` | G.711 A-law raw audio |
 | `pcmwav` | `.wav` | PCM in WAV container (supports stereo) |
 | `opus` | `.opus` | Opus in Ogg container |
 
@@ -195,6 +186,7 @@ OrekaSipStack/
 │   ├── orkweb-win32-installer/
 │   └── tools/                #   DB migration scripts
 ├── documentation/            # Developer docs (DocBook XML)
+├── oreka_sipstack_rpm-build.sh  # Jenkins RPM build script
 ├── pom.xml                   # Maven parent POM
 ├── BUILD_C++.txt             # C++ build instructions
 ├── CHANGELOG.txt             # Release history
@@ -228,6 +220,19 @@ sudo apt-get install -y \
     cmake
 ```
 
+### For AlmaLinux 10 / RHEL 10 (RPM build server)
+
+```bash
+# System dependencies (run as root once)
+dnf install -y epel-release
+dnf config-manager --set-enabled crb
+dnf install -y gcc gcc-c++ make libtool automake autoconf \
+    boost-devel libpcap-devel libsndfile-devel apr-devel \
+    speex-devel log4cxx-devel libcap-devel opus-devel \
+    xerces-c-devel openssl-devel cmake elfutils-devel xz-devel \
+    libunwind-devel git rpm-build rpmdevtools file
+```
+
 ### Opus & SILK Codec Libraries
 
 ```bash
@@ -251,6 +256,16 @@ git clone https://github.com/BelledonneCommunications/bcg729.git
 cd bcg729
 cmake . -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=/usr/lib
 make && sudo make install
+```
+
+### Optional: backward-cpp (stack traces)
+
+Required for the RPM build. Install once as root:
+
+```bash
+mkdir -p /opt/backward-cpp && chmod 777 /opt/backward-cpp
+git clone --depth 1 https://github.com/bombela/backward-cpp.git /opt/backward-cpp
+ln -s /opt/backward-cpp/backward.hpp /usr/local/include/backward.hpp
 ```
 
 ### For Java (orktrack & orkweb)
@@ -295,6 +310,90 @@ This installs the `orkaudio` binary to `/usr/sbin/` and plugins to `/usr/lib/`.
 #### Building on Windows
 
 Visual Studio project files (`.sln`, `.vcxproj`, `.vcproj`) are provided in both `orkbasecxx/` and `orkaudio/` directories.
+
+### RPM Build & Installation
+
+The project includes a Jenkins-grade RPM build script (`oreka_sipstack_rpm-build.sh`) targeting **AlmaLinux 10** (kernel 6.12, GCC 14.3). It performs a full source build, stages everything under a DESTDIR, and packages it into an installable `.rpm`.
+
+#### Build Process Overview
+
+The script runs six steps:
+
+| Step | What it does |
+|------|-------------|
+| 0 | Clones the repository from GitHub (requires `GITHUB_TOKEN`) |
+| 1 | Verifies system build dependencies are installed |
+| 2 | Verifies third-party codec libraries (SILK, bcg729, Opus) are present |
+| 3 | Builds `orkbasecxx`: `autoreconf -i`, `./configure --prefix=/usr --libdir=/usr/lib`, `make`, `make install DESTDIR=...` |
+| 4 | Builds `orkaudio`: same flow, linking against staged `orkbasecxx` via `LD_LIBRARY_PATH` |
+| 5 | Generates an RPM `.spec` file and runs `rpmbuild -bb` |
+| 6 | Copies the resulting `.rpm` to the output directory and runs a smoke test |
+
+#### Running the Build (Jenkins)
+
+```bash
+export GITHUB_TOKEN="ghp_..."
+export GIT_BRANCH="version/2.5"
+./oreka_sipstack_rpm-build.sh
+```
+
+The output RPM lands at `/data/RPMS/orkaudio/orkaudio-2.5-1.el10.x86_64.rpm`.
+
+#### Build Server Prerequisites (run once as root)
+
+Before the script can run, the build server must have:
+
+1. System packages (see [Prerequisites for AlmaLinux](#for-almalinux-10--rhel-10-rpm-build-server))
+2. Codec libraries: SILK at `/opt/silk/SILKCodec/SILK_SDK_SRC_FIX/`, bcg729, Opus
+3. backward-cpp at `/usr/local/include/backward.hpp`
+4. Build directories: `/opt/RPMBUILDER/`, `/data/RPMS/orkaudio/`
+
+#### RPM Architecture
+
+The spec file packages:
+
+| Path | Contents |
+|------|----------|
+| `/usr/sbin/orkaudio` | Main daemon binary |
+| `/usr/lib/liborkbase.so*` | Core shared library |
+| `/usr/lib/libvoip.so*` | VoIP capture plugin |
+| `/usr/lib/libgenerator.so*` | Test signal generator plugin |
+| `/usr/lib/orkaudio/plugins/` | Codec filter plugins (G.729, SILK, RTP mixer) |
+| `/usr/lib64/libbcg729.so*` | G.729 codec library |
+| `/etc/orkaudio/` | Configuration files |
+| `/opt/orkaudio/audio/` | Default recording output directory |
+| `/var/log/orkaudio/` | Log directory |
+
+#### Installing the RPM
+
+```bash
+# Install the RPM (requires root)
+sudo rpm -ivh orkaudio-2.5-1.el10.x86_64.rpm
+
+# Or upgrade an existing installation
+sudo rpm -Uvh orkaudio-2.5-1.el10.x86_64.rpm
+
+# Verify installation
+rpm -ql orkaudio
+orkaudio version
+```
+
+#### Post-Install Setup
+
+```bash
+# Grant raw socket permissions for packet capture
+sudo setcap cap_net_raw,cap_net_admin+ep /usr/sbin/orkaudio
+
+# Tune kernel buffer for high-throughput capture
+echo 'net.core.rmem_max = 16777216' | sudo tee /etc/sysctl.d/90-orkaudio.conf
+sudo sysctl --system
+
+# Edit configuration
+sudo vi /etc/orkaudio/config.xml
+
+# Start orkaudio
+orkaudio debug
+```
 
 ### Java Components (orktrack & orkweb)
 
