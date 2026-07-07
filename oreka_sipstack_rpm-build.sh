@@ -243,7 +243,7 @@ export LD_LIBRARY_PATH="${ORKSIP_INSTALL_ROOT}/usr/lib:${ORKSIP_INSTALL_ROOT}/us
 autoreconf -i
 
 ./configure CXX=g++ --prefix=/usr --libdir=/usr/lib \
-    LDFLAGS="-L${ORKSIP_INSTALL_ROOT}/usr/lib -L${ORKSIP_INSTALL_ROOT}/usr/lib64" \
+    LDFLAGS="-L${ORKSIP_INSTALL_ROOT}/usr/lib -L${ORKSIP_INSTALL_ROOT}/usr/lib64 -Wl,-rpath,/usr/lib" \
     CPPFLAGS="-I${ORKSIP_INSTALL_ROOT}/usr/include"
 
 make -j"$(nproc)"
@@ -481,7 +481,7 @@ log "  Spec written to ${SPEC_FILE}"
 # =============================================================================
 log "  Running rpmbuild..."
 
-rpmbuild -bb \
+QA_RPATHS=0x0001 rpmbuild -bb \
     --define "_topdir ${RPM_TOPDIR}" \
     "${SPEC_FILE}"
 
