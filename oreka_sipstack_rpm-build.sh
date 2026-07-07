@@ -337,8 +337,8 @@ cat >> "${SPEC_FILE}" << 'SPECEOF'
 
 %check
 test -f %{_sourcedir}/usr/sbin/orkaudio    || { echo "ERROR: orkaudio binary not found"    >&2; exit 1; }
-test -f %{_sourcedir}/usr/lib/liborkbase.* || { echo "ERROR: liborkbase not found"         >&2; exit 1; }
-test -f %{_sourcedir}/usr/lib/libvoip.*    || { echo "ERROR: libvoip plugin not found"     >&2; exit 1; }
+ls %{_sourcedir}/usr/lib/liborkbase.* >/dev/null 2>&1 || { echo "ERROR: liborkbase not found"         >&2; exit 1; }
+ls %{_sourcedir}/usr/lib/libvoip.* >/dev/null 2>&1    || { echo "ERROR: libvoip plugin not found"     >&2; exit 1; }
 
 %install
 rm -rf %{buildroot}
