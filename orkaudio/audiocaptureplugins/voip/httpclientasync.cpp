@@ -50,8 +50,6 @@ public:
         char const* _body )
     {
         // Set up an HTTP POST request message
-        boost::beast::string_view _b = _body;
-
 
         req_.version(11);
         req_.method(http::verb::post);
@@ -59,7 +57,7 @@ public:
         req_.target(target);
         req_.set(http::field::host, host);
         req_.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-        req_.body() = _b.to_string();
+        req_.body() = _body;
 
         req_.prepare_payload();
 
