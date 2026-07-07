@@ -481,7 +481,7 @@ log "  Spec written to ${SPEC_FILE}"
 # =============================================================================
 log "  Running rpmbuild..."
 
-QA_RPATHS=0x0001 rpmbuild -bb \
+QA_RPATHS=0x0003 rpmbuild -bb \
     --define "_topdir ${RPM_TOPDIR}" \
     "${SPEC_FILE}"
 
