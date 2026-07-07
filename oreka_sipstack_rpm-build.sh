@@ -208,6 +208,23 @@ fi
 log "  All codec libraries present."
 
 # =============================================================================
+# Step 2b -- Install backward-cpp (header-only stack trace library)
+# =============================================================================
+log "Step 2b/6  Installing backward-cpp..."
+
+BACKWARD_HEADER="/usr/local/include/backward.hpp"
+
+if [ ! -f "${BACKWARD_HEADER}" ]; then
+    rm -rf /opt/backward-cpp 2>/dev/null || true
+    mkdir -p /opt/backward-cpp && chmod 777 /opt/backward-cpp
+    git clone --depth 1 https://github.com/bombela/backward-cpp.git /opt/backward-cpp
+    ln -s /opt/backward-cpp/backward.hpp "${BACKWARD_HEADER}"
+    log "  backward-cpp installed to ${BACKWARD_HEADER}"
+else
+    log "  backward-cpp already present."
+fi
+
+# =============================================================================
 # Step 3 -- Build orkbasecxx
 # =============================================================================
 log "Step 3/6  Building orkbasecxx..."

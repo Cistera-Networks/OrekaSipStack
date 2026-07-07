@@ -16,9 +16,11 @@
 #include "stdio.h"
 #include <iostream>
 
+#if __has_include("backward.hpp")
 #define BACKWARD_HAS_DW 1
 #define BACKWARD_HAS_LIBUNWIND 1
 #include "backward.hpp"
+#endif
 
 #include "MultiThreadedServer.h"
 #include "OrkAudio.h"
@@ -467,7 +469,9 @@ void MainThread()
 int main(int argc, char* argv[])
 {
 
+#if __has_include("backward.hpp")
 	backward::SignalHandling sh; //install fatal error backtrace handler.
+#endif
 
 	OrkAprSingleton::Initialize();
 
