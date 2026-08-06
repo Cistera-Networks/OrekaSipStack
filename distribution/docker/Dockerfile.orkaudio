@@ -1,7 +1,7 @@
 # escape=`
 # syntax=docker/dockerfile:experimental
 
-FROM ubuntu:focal as builder
+FROM ubuntu:20.04 as builder
 MAINTAINER Kinshuk B (hi@kinsh.uk)
 
 # Configure apt
@@ -59,7 +59,7 @@ RUN cd /opt/oreka/orkaudio `
 	&& make `
 	&& make install
 
-FROM ubuntu:focal
+FROM ubuntu:20.04
 MAINTAINER Kinshuk B (hi@kinsh.uk)
 
 ENV DEBIAN_FRONTEND=noninteractive
