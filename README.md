@@ -186,7 +186,6 @@ OrekaSipStack/
 │   ├── orkweb-win32-installer/
 │   └── tools/                #   DB migration scripts
 ├── documentation/            # Developer docs (DocBook XML)
-├── oreka_sipstack_rpm-build.sh  # Jenkins RPM build script
 ├── pom.xml                   # Maven parent POM
 ├── BUILD_C++.txt             # C++ build instructions
 ├── CHANGELOG.txt             # Release history
@@ -313,7 +312,7 @@ Visual Studio project files (`.sln`, `.vcxproj`, `.vcproj`) are provided in both
 
 ### RPM Build & Installation
 
-The project includes a Jenkins-grade RPM build script (`oreka_sipstack_rpm-build.sh`) targeting **AlmaLinux 10** (kernel 6.12, GCC 14.3). It performs a full source build, stages everything under a DESTDIR, and packages it into an installable `.rpm`.
+The RPM build script lives in the BuildServer repo (`build_scripts/oreka_sipstack_rpm_build_github.sh`) and is deployed to `/opt/scripts/` on the build host — the standard releasing mechanism used by every component (see the BuildServer Jenkins pipelines). It targets **AlmaLinux 10** (kernel 6.12, GCC 14.3), performs a full source build, stages everything under a DESTDIR, and packages it into an installable `.rpm`.
 
 #### Build Process Overview
 
@@ -334,10 +333,11 @@ The script runs six steps:
 ```bash
 export GITHUB_TOKEN="ghp_..."
 export GIT_BRANCH="version/2.5"
-./oreka_sipstack_rpm-build.sh
+export BUILD_NUMBER="1"
+/opt/scripts/oreka_sipstack_rpm_build_github.sh
 ```
 
-The output RPM lands at `/data/RPMS/orkaudio/orkaudio-2.5-1.el10.x86_64.rpm`.
+The output RPM lands at `/data/RPMS/orkaudio/orkaudio-2.5-1.<build>.el10.x86_64.rpm`.
 
 #### Build Server Prerequisites (run once as root)
 
