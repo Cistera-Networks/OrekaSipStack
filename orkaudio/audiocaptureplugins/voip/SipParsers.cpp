@@ -1110,22 +1110,39 @@ bool TrySip200Ok(EthernetHeaderStruct* ethernetHeader, IpHeaderStruct* ipHeader,
 
 			}
 
-			// We also need the codec they are going to use 
-			// so need to pull out the audio= line and get the preferred codec. 
+			// We also need the codec they are going to use
+			// so need to pull out the audio= line and get the preferred codec.
 			CStdString rtp_codec;
-			CStdString ax = std::string(audioField);
+			// The audio field points INTO the packet — not NUL-terminated —
+			// so bound the copy to the remaining packet length (a malformed or
+			// short 200 OK must never crash the capture thread: an unguarded
+			// find/substr used to throw std::out_of_range and abort the daemon).
+			size_t audioFieldLen = (size_t)(sipEnd - audioField);
+			if (audioFieldLen > 0 && audioFieldLen < 4096)
+			{
+				CStdString ax = CStdString(audioField, audioFieldLen);
 
-			int pos = ax.find("a=rtpmap:");  		   // find first rtpmap and trim out
-			ax = ax.substr(pos);
-			pos = ax.find('\n'); 
-			ax= ax.substr(0, pos);						// this should be the first rtpmap line
+				int pos = ax.find("a=rtpmap:");
+				if (pos != (int)std::string::npos)
+				{
+					ax = ax.substr(pos);
+					pos = ax.find('\n');
+					if (pos != (int)std::string::npos)
+					{
+						ax = ax.substr(0, pos);		// this should be the first rtpmap line
 
-			std::vector<CStdString> v;
-			boost::split(v, ax, ::isspace);
-			rtp_codec = v[1];
-			logMsg = "------- Codec for Media = <" + rtp_codec + ">";
-			LOG4CXX_DEBUG(s_sipExtractionLog, logMsg);	
-			info->m_codec = rtp_codec;
+						std::vector<CStdString> v;
+						boost::split(v, ax, ::isspace);
+						if (v.size() >= 2)
+						{
+							rtp_codec = v[1];
+							logMsg = "------- Codec for Media = <" + rtp_codec + ">";
+							LOG4CXX_DEBUG(s_sipExtractionLog, logMsg);
+							info->m_codec = rtp_codec;
+						}
+					}
+				}
+			}
 
 		}
 

@@ -807,6 +807,11 @@ void ProcessTransportLayer(EthernetHeaderStruct* ethernetHeader, IpHeaderStruct*
 
 void HandlePacket(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data)
 {
+	// A malformed packet must never kill the capture thread: a SIP parser bug
+	// (TrySip200Ok throwing std::out_of_range on a short 200 OK) used to
+	// terminate the whole daemon. Catch anything the parsers throw and skip.
+	try
+	{
 	time_t now = time(NULL);
 
 	s_numPackets++;
@@ -965,6 +970,17 @@ void HandlePacket(u_char *param, const struct pcap_pkthdr *header, const u_char 
 		VoIpSessionsSingleton::instance()->Hoover(now);
 		Iax2SessionsSingleton::instance()->Hoover(now);
 		VoIpSingleton::instance()->LoadPartyMaps();
+	}
+	}
+	catch (const std::exception& e)
+	{
+		CStdString logMsg;
+		logMsg.Format("HandlePacket: caught exception, skipping packet: %s", e.what());
+		LOG4CXX_WARN(s_packetLog, logMsg);
+	}
+	catch (...)
+	{
+		LOG4CXX_WARN(s_packetLog, "HandlePacket: caught unknown exception, skipping packet");
 	}
 }
 
